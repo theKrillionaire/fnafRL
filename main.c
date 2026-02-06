@@ -14,6 +14,7 @@ enum SCREENS {
 	SC_OFFICE,
 	SC_CAMS,
 	SC_DEAD,
+	SC_BONJUMP,
 	SC_WIN
 };
 enum CAMERAS {
@@ -28,8 +29,14 @@ enum CAMERAS {
 	C_RIGHTHALL2,
 	C_RIGHTDOORWAY
 };
-void update(int* bonStates) {
-	if(bonStates[1] > 0) {
+void update(int* bonStates, int* state) {
+	
+	// bonnie shit
+	if(state[ST_SCREEN] == SC_BONJUMP) {
+		printf("holy jumpscare..");
+		state[ST_SCREEN] = SC_DEAD;
+	}
+	else if(bonStates[1] > 0) {
 		bonStates[1] -= 1;
 	} else {
 		bonStates[1] = GetRandomValue(100,1000);
@@ -53,8 +60,9 @@ void update(int* bonStates) {
 				bonStates[0] = C_LEFTDOORWAY;
 				break;
 			case C_LEFTDOORWAY:
+				if(state[ST_DOORL]) bonStates[0] = GetRandomValue(C_STAGE,C_LEFTHALL1);
+				else state[ST_SCREEN] = SC_BONJUMP;
 				break;
-				//figure this out later </3
 		}
 	}
 }
@@ -62,20 +70,38 @@ void update(int* bonStates) {
 void drawScreen(int* state, int* bonStates) {
 	BeginDrawing();
 		ClearBackground(BLACK);
-		char string[15];
-		snprintf(string, 15, "cam %i, tim %i", bonStates[0], bonStates[1]); 
-		DrawText(string, 10, 10, 20, WHITE);
+		if(state[ST_SCREEN] == SC_TITLE) {
+			DrawText("FNaF Raylib Thing!!\n\n\n\n  Press Enter to Begin Night 1!", 10,10,20, WHITE);
+		}
+		else if(state[ST_SCREEN] == SC_OFFICE) {
+			char string[24];
+			snprintf(string, 24, "cam %i, tim %i, doorl %i", bonStates[0], bonStates[1], state[ST_DOORL]); 
+			DrawText(string, 10, 10, 20, WHITE);
+		}
 	EndDrawing();
 }
 
 int main() {
 	InitWindow(640,480,"FNaF");
 	SetTargetFPS(30);
+	
 	//the enum STATESTUFF is to easier index this ↓↓ ☻
 	int state[6] = { SC_TITLE, 0, C_STAGE, 100, false, false };
+	
+	//bonStates[0] is the current camera, bonStates[1] is his timer
 	int bonStates[2] = { C_STAGE, 100 };
 	while(!WindowShouldClose()) {
-		update(bonStates);
+		if(state[ST_SCREEN] == SC_TITLE) {
+			if(IsKeyPressed(KEY_ENTER)) state[ST_SCREEN] = SC_OFFICE;
+		}
+		else if(state[ST_SCREEN] == SC_OFFICE) {
+			if(IsKeyPressed(KEY_LEFT)) {
+				state[ST_DOORL] = !state[ST_DOORL];
+			} else if(IsKeyPressed(KEY_RIGHT)) {
+				state[ST_DOORR] = !state[ST_DOORR];
+			}
+			update(bonStates, state);
+		}
 		drawScreen(state, bonStates);
 	}
 }
