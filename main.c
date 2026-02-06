@@ -27,25 +27,55 @@ enum CAMERAS {
 	C_RIGHTHALL1,
 	C_RIGHTHALL2,
 	C_RIGHTDOORWAY
-}
-void update(int* bonTimer) {
-	
+};
+void update(int* bonStates) {
+	if(bonStates[1] > 0) {
+		bonStates[1] -= 1;
+	} else {
+		bonStates[1] = GetRandomValue(100,1000);
+		switch (bonStates[0]) {
+			case C_STAGE:
+				bonStates[0] = C_DININGROOM;
+				break;
+			case C_DININGROOM:
+				bonStates[0] = GetRandomValue(C_PARTSNSERVICE, C_LEFTHALL1);
+				break;
+			case C_PARTSNSERVICE:
+				bonStates[0] = C_DININGROOM;
+				break;
+			case C_LEFTHALL1:
+				bonStates[0] = GetRandomValue(C_LEFTHALLCLOSET, C_LEFTHALL2);
+				break;
+			case C_LEFTHALLCLOSET:
+				bonStates[0] = GetRandomValue(C_LEFTHALL1, C_LEFTHALL2);
+				break;
+			case C_LEFTHALL2:
+				bonStates[0] = C_LEFTDOORWAY;
+				break;
+			case C_LEFTDOORWAY:
+				break;
+				//figure this out later </3
+		}
+	}
 }
 
-void drawScreen(int* state) {
+void drawScreen(int* state, int* bonStates) {
 	BeginDrawing();
+		ClearBackground(BLACK);
 		char string[15];
-		snprintf(string, 15, "%i, %i, %i, %i", state[ST_SCREEN], state[ST_NIGHT], state[ST_CAM],  state[ST_POWER]); 
+		snprintf(string, 15, "cam %i, tim %i", bonStates[0], bonStates[1]); 
 		DrawText(string, 10, 10, 20, WHITE);
 	EndDrawing();
 }
 
 int main() {
 	InitWindow(640,480,"FNaF");
+	SetTargetFPS(30);
 	//the enum STATESTUFF is to easier index this ↓↓ ☻
-	int state[4] = { SC_TITLE, 0, C_STAGE, 100, false, false };
-	int bonSTATE[2] = { C_STAGE, 100 };
+	int state[6] = { SC_TITLE, 0, C_STAGE, 100, false, false };
+	int bonStates[2] = { C_STAGE, 100 };
 	while(!WindowShouldClose()) {
-		drawScreen(state);
+		update(bonStates);
+		drawScreen(state, bonStates);
 	}
 }
