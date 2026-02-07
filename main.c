@@ -25,13 +25,14 @@ enum STATESTUFF {
 	ST_DOORR,
 	ST_CAMTOG,
 	ST_LIGHT,
+	ST_TIME,
 	STATECOUNT
 };
 enum SCREENS {
 	SC_TITLE,
 	SC_OFFICE,
 	SC_DEAD,
-	SC_robJUMP,
+	SC_bluebJUMP,
 	SC_WIN
 };
 enum CAMERAS {
@@ -51,45 +52,45 @@ int getPowerUsage(int* state) {
 	return powerUsage;
 }
 
-void update(int* robStates, int* state) {
+void update(int* bluebStates, int* state) {
 	
-	// robyn shit
-	if(state[ST_SCREEN] == SC_robJUMP) {
+	// BlueBeary shit
+	if(state[ST_SCREEN] == SC_bluebJUMP) {
 		printf("holy jumpscare..");
 		state[ST_SCREEN] = SC_DEAD;
 	}
-	else if(robStates[1] > 0) {
-		robStates[1] -= 1;
+	else if(bluebStates[1] > 0) {
+		bluebStates[1] -= 1;
 	} else {
-		robStates[1] = GetRandomValue(100,1000);
-		switch (robStates[0]) {
+		bluebStates[1] = GetRandomValue(100,1000);
+		switch (bluebStates[0]) {
 			case C_STAGE:
-				robStates[0] = C_DININGROOM;
+				bluebStates[0] = C_DININGROOM;
 				break;
 			case C_DININGROOM:
-				robStates[0] = GetRandomValue(C_PARTSNSERVICE, C_LEFTHALL1);
+				bluebStates[0] = GetRandomValue(C_PARTSNSERVICE, C_LEFTHALL1);
 				break;
 			case C_PARTSNSERVICE:
-				robStates[0] = C_DININGROOM;
+				bluebStates[0] = C_DININGROOM;
 				break;
 			case C_LEFTHALL1:
-				robStates[0] = GetRandomValue(C_LEFTHALLCLOSET, C_LEFTHALL2);
+				bluebStates[0] = GetRandomValue(C_LEFTHALLCLOSET, C_LEFTHALL2);
 				break;
 			case C_LEFTHALLCLOSET:
-				robStates[0] = GetRandomValue(C_LEFTHALL1, C_LEFTHALL2);
+				bluebStates[0] = GetRandomValue(C_LEFTHALL1, C_LEFTHALL2);
 				break;
 			case C_LEFTHALL2:
-				robStates[0] = C_LEFTDOORWAY;
+				bluebStates[0] = C_LEFTDOORWAY;
 				break;
 			case C_LEFTDOORWAY:
-				if(state[ST_DOORL]) robStates[0] = GetRandomValue(C_STAGE,C_LEFTHALL1);
-				else state[ST_SCREEN] = SC_robJUMP;
+				if(state[ST_DOORL]) bluebStates[0] = GetRandomValue(C_STAGE,C_LEFTHALL1);
+				else state[ST_SCREEN] = SC_bluebJUMP;
 				break;
 		}
 	}
 }
 
-void drawScreen(int* state, int* robStates, Texture2D* images) {
+void drawScreen(int* state, int* bluebStates, Texture2D* images) {
 	BeginDrawing();
 		ClearBackground(BLACK);
 		if(state[ST_SCREEN] == SC_TITLE) {
@@ -101,7 +102,7 @@ void drawScreen(int* state, int* robStates, Texture2D* images) {
 			char string[40];
 			DrawTexture(images[SPR_OFFICE],0,0,WHITE);
 			char room[24];
-			switch (robStates[0]) {
+			switch (bluebStates[0]) {
 				case C_STAGE:
 					strcpy(room, "C_STAGE");
 					break;
@@ -124,7 +125,7 @@ void drawScreen(int* state, int* robStates, Texture2D* images) {
 			if(state[ST_LIGHT]) {
 				DrawText("light", GetMouseX() - MeasureText("light",20) / 2,GetMouseY() - 10,20,WHITE);
 			}
-			snprintf(string, 40, "cam %s, tim %i, doorl %i", room, robStates[1], state[ST_DOORL]); 
+			snprintf(string, 40, "cam %s, tim %i, doorl %i, %i:00", room, bluebStates[1], state[ST_DOORL], state[ST_TIME] / 300); 
 			DrawText(string, 10, 10, 20, WHITE);
 		}
 		DrawTexture(images[SPR_CURSOR], GetMouseX(), GetMouseY(), WHITE);
@@ -151,10 +152,10 @@ int main() {
 	int mouseX;
 	int mouseY;
 	//the enum STATESTUFF is to easier index this ↓↓ ☻
-	int state[STATECOUNT] = { SC_TITLE, 0, C_STAGE, 100, false, false, false, false };
+	int state[STATECOUNT] = { SC_TITLE, 0, C_STAGE, 100, false, false, false, false, 0 };
 	
-	//robStates[0] is the current camera, robStates[1] is his timer
-	int robStates[2] = { C_STAGE, 100 };
+	//bluebStates[0] is the current camera, bluebStates[1] is his timer
+	int bluebStates[2] = { C_STAGE, 100 };
 	while(!WindowShouldClose()) {
 		mouseX = GetMouseX();
 		mouseY = GetMouseY();
@@ -163,11 +164,13 @@ int main() {
 			if(IsMouseButtonPressed(0) && mouseX >= 35 && mouseX <= 53 + 35 && mouseY >= 185 && mouseY <= 185 + 27) {
 				state[ST_SCREEN] = SC_OFFICE;
 			} else if(IsMouseButtonPressed(0) && mouseX >= 35 && mouseX <= 53 + 35 && mouseY >= 220 && mouseY <= 220 + 27) {
+				CloseAudioDevice();
 				CloseWindow();
 				return 0;
 			}
 		}
 		else if(state[ST_SCREEN] == SC_OFFICE) {
+			if(state[ST_TIME] < 1800) state[ST_TIME]++;
 			if(!IsSoundPlaying(sounds[SND_ELECHUM])) PlaySound(sounds[SND_ELECHUM]);
 			if(IsKeyPressed(KEY_LEFT)) {
 				if(state[ST_DOORL]) PlaySound(sounds[SND_DOORSLAM]);
@@ -182,10 +185,11 @@ int main() {
 			} else if(IsKeyPressed(KEY_F)) {
 				state[ST_LIGHT] = !state[ST_LIGHT];
 			}
-			update(robStates, state);
+			update(bluebStates, state);
 		}
-		drawScreen(state, robStates, images);
+		drawScreen(state, bluebStates, images);
 	}
+	CloseAudioDevice();
 	CloseWindow();
 	return 0;
 }
