@@ -31,11 +31,19 @@ enum STATESTUFF {
 	ST_DOORL,
 	ST_DOORR,
 	ST_CAMTOG,
+	ST_OFFICECAMPOS,
 	ST_LIGHT,
 	ST_TIME,
 	ST_FLASHER,
 	ST_MILITARYTIME,
+	ST_POWERFRAME,
 	STATECOUNT
+};
+enum FRAMESTATESTUFF {
+	FR_DOORL,
+	FR_DOORR,
+	FR_CAM,
+	FRSTCOUNT
 };
 enum SCREENS {
 	SC_TITLE,
@@ -64,11 +72,16 @@ enum animCAMERAS {
 	C_RIGHTDOORWAY
 };
 int getPowerUsage(int* state) {
-	int powerUsage = 0 + ST_LIGHT + ST_DOORR + ST_DOORL + ST_CAMTOG;
+	int powerUsage = state[ST_LIGHT] + state[ST_DOORR] + state[ST_DOORL] + state[ST_CAMTOG];
 	return powerUsage;
 }
 
 void update(int* bluebStates, int* state) {
+	state[ST_POWERFRAME]++;
+	if(state[ST_POWERFRAME] >= 45) {
+		state[ST_POWER] -= getPowerUsage(state);
+		state[ST_POWERFRAME] = 0;
+	}
 	state[ST_FLASHER]++;
 	if(state[ST_FLASHER] >= 30) state[ST_FLASHER] = 0;
 	// BlueBeary shit
@@ -119,8 +132,9 @@ void drawScreen(int* state, int* bluebStates, Texture2D* images) {
 			DrawText("Military\n  Time",584,443,10,WHITE);
 		}
 		else if(state[ST_SCREEN] == SC_OFFICE) {
-			char string[64];
-			DrawTexture(images[SPR_OFFICE],0,0,WHITE);
+			char timeString[10];
+			char powerString[12];
+			DrawTexture(images[SPR_OFFICE],-200 + state[ST_OFFICECAMPOS],0,WHITE);
 			char room[24];
 			switch (bluebStates[0]) {
 				case C_STAGE:
@@ -132,7 +146,7 @@ void drawScreen(int* state, int* bluebStates, Texture2D* images) {
 				case C_PARTSNSERVICE:
 					strcpy(room, "C_PARTSNSERVICE");
 					break;
-				case C_LEFTHALL1:
+				case C_LEFTHALL1:	
 					strcpy(room, "C_LEFTHALL1");
 					break;
 				case C_LEFTHALL2:
@@ -167,16 +181,18 @@ void drawScreen(int* state, int* bluebStates, Texture2D* images) {
 						}
 						break;
 				}
-				DrawTexture(images[SPR_DEADPIXELS],0,0,WHITE);
 			}
 			if(state[ST_MILITARYTIME]) {
-				snprintf(string, 64, "0%i:00", state[ST_TIME] / 30 / 60); 
+				snprintf(timeString, 10, "%i:00", state[ST_TIME] / 30 / 60); 
 			} else {
-				if(state[ST_TIME] / 300 == 0) snprintf(string, 64, "12 AM"); 
-				else snprintf(string, 64, "%i AM", state[ST_TIME] / 30 / 60); 
+				if(state[ST_TIME] / 300 == 0) snprintf(timeString, 10, "12 AM"); 
+				else snprintf(timeString, 10, "%i AM", state[ST_TIME] / 30 / 60); 
 			}
-			DrawText(string, 575, 10, 20, WHITE);
+			snprintf(powerString, 12, "Power: %i", state[ST_POWER]);
+			DrawText(powerString, 10, 10, 20, WHITE);
+			DrawText(timeString, 575, 10, 20, WHITE);
 		}
+		DrawTexture(images[SPR_DEADPIXELS],0,0,WHITE);
 		DrawTexture(images[SPR_CURSOR], GetMouseX(), GetMouseY(), WHITE);
 	EndDrawing();
 }
@@ -205,10 +221,15 @@ int main() {
 		LoadSound("sounds/SND_DOORSLAM.wav"),
 		LoadSound("sounds/SND_DOOROPEN.wav")
 	};
+	int frameStates[FRSTCOUNT] = {
+		0,
+		0,
+		0
+	};
 	int mouseX;
 	int mouseY;
 	//the enum STATESTUFF is to easier index this ↓↓ ☻
-	int state[STATECOUNT] = { SC_TITLE, 0, P_STAGE, 100, false, false, false, false, 0, 0, true };
+	int state[STATECOUNT] = { SC_TITLE, 0, P_STAGE, 100, false, false, false, 0, false, 0, 0, true, 0 };
 	
 	//bluebStates[0] is the current camera, bluebStates[1] is his timer
 	int bluebStates[2] = { C_STAGE, 100 };
@@ -241,6 +262,10 @@ int main() {
 					state[ST_DOORR] = !state[ST_DOORR];
 				} else if(IsKeyPressed(KEY_F)) {
 					state[ST_LIGHT] = !state[ST_LIGHT];
+				} else if(mouseX <= 220 && state[ST_OFFICECAMPOS] < 200) { 
+					state[ST_OFFICECAMPOS] += 5; 
+				} else if(mouseX >= 420 && state[ST_OFFICECAMPOS] > -200) { 
+					state[ST_OFFICECAMPOS] -= 5;
 				}
 			} else {
 				if(IsKeyPressed(KEY_LEFT) && state[ST_CAM] > P_PARTSNSERVICE) {
